@@ -1,0 +1,562 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>用 DASP 算一遍掺杂缺陷：以 Fe 掺杂 β-Ga₂O₃ 为例 | 今天也要开心！</title><meta name="author" content="会飞的皮卡"><meta name="copyright" content="会飞的皮卡"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="从 POSCAR &#x2F; dasp.in 两个输入文件出发，把 DASP 四模块（TSC→DEC→DDC→CDC）的掺杂缺陷计算流程完整走一遍，附关键参数解读、形成能公式与踩坑清单。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="用 DASP 算一遍掺杂缺陷：以 Fe 掺杂 β-Ga₂O₃ 为例">
+<meta property="og:url" content="https://shine-1314521.github.io/posts/716204583.html">
+<meta property="og:site_name" content="今天也要开心！">
+<meta property="og:description" content="从 POSCAR &#x2F; dasp.in 两个输入文件出发，把 DASP 四模块（TSC→DEC→DDC→CDC）的掺杂缺陷计算流程完整走一遍，附关键参数解读、形成能公式与踩坑清单。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://shine-1314521.github.io/image/top4.jpg">
+<meta property="article:published_time" content="2026-10-07T18:30:00.000Z">
+<meta property="article:modified_time" content="2026-10-07T18:30:00.000Z">
+<meta property="article:author" content="会飞的皮卡">
+<meta property="article:tag" content="DASP">
+<meta property="article:tag" content="HSE">
+<meta property="article:tag" content="VASP">
+<meta property="article:tag" content="β-Ga2O3">
+<meta property="article:tag" content="掺杂">
+<meta property="article:tag" content="第一性原理">
+<meta property="article:tag" content="缺陷计算">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://shine-1314521.github.io/image/top4.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "用 DASP 算一遍掺杂缺陷：以 Fe 掺杂 β-Ga₂O₃ 为例",
+  "url": "https://shine-1314521.github.io/posts/716204583.html",
+  "image": "https://shine-1314521.github.io/image/top4.jpg",
+  "datePublished": "2026-10-07T18:30:00.000Z",
+  "dateModified": "2026-10-07T18:30:00.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "会飞的皮卡",
+      "url": "https://shine-1314521.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://shine-1314521.github.io/posts/716204583.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="stylesheet" href="/css/index.css?v=5.7.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.14/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        const data = { value }
+
+        if (ttl != null) {
+          data.expiry = Date.now() + ttl * 86400000
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return
+
+        try {
+          const data = JSON.parse(itemStr)
+
+          if (data.expiry && Date.now() > data.expiry) {
+            localStorage.removeItem(key)
+            return
+          }
+
+          return data.value
+        } catch {
+          localStorage.removeItem(key)
+        }
+      }
+    }
+
+    const scriptCache = new Map()
+    const cssCache = new Map()
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => {
+        if (scriptCache.has(url)) {
+          return scriptCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+
+          script.src = url
+          script.async = true
+
+          for (const key in attr) {
+            script.setAttribute(key, attr[key])
+          }
+
+          script.onload = resolve
+          script.onerror = reject
+
+          document.head.appendChild(script)
+        })
+
+        scriptCache.set(url, promise)
+
+        return promise
+      },
+      getCSS: (url, id) => {
+        if (cssCache.has(url)) {
+          return cssCache.get(url)
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          const link = document.createElement('link')
+
+          link.rel = 'stylesheet'
+          link.href = url
+
+          if (id) {
+            link.id = id
+          }
+
+          link.onload = resolve
+          link.onerror = reject
+
+          document.head.appendChild(link)
+        })
+
+        cssCache.set(url, promise)
+
+        return promise
+      },
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+      const activateDarkMode = () => {
+        document.documentElement.dataset.theme = 'dark'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.dataset.theme = 'light'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":1,"unescape":true,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '用 DASP 算一遍掺杂缺陷：以 Fe 掺杂 β-Ga₂O₃ 为例',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" type="text/css" href="/css/aplayer.min.css"><link rel="stylesheet" type="text/css" href="/css/l2d-bubble.css"><meta name="generator" content="Hexo 8.1.2"><link rel="alternate" href="/atom.xml" title="今天也要开心！" type="application/atom+xml">
+</head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">加载中...</div></div></div><script>(()=>{
+  const $loadingBox = document.getElementById('loading-box')
+  const $body = document.body
+  const preloader = {
+    endLoading: () => {
+      if ($loadingBox.classList.contains('loaded')) return
+      $body.style.overflow = ''
+      $loadingBox.classList.add('loaded')
+    },
+    initLoading: () => {
+      $body.style.overflow = 'hidden'
+      $loadingBox.classList.remove('loaded')
+    }
+  }
+
+  preloader.initLoading()
+
+  if (document.readyState === 'complete') {
+    preloader.endLoading()
+  } else {
+    window.addEventListener('load', preloader.endLoading)
+    document.addEventListener('DOMContentLoaded', preloader.endLoading)
+    // Add timeout protection: force end after 7 seconds
+    setTimeout(preloader.endLoading, 7000)
+  }
+
+  if (true) {
+    btf.addGlobalFn('pjaxSend', preloader.initLoading, 'preloader_init')
+    btf.addGlobalFn('pjaxComplete', preloader.endLoading, 'preloader_end')
+  }
+})()</script><div class="bg-animation" id="web_bg" style="background-image: url(/image/backphoto.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/image/tx.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">6</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">21</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">4</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fa fa-graduation-cap"></i><span> 博文</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fa fa-folder-open"></i><span> 归档</span></a></li></ul></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 生活</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/shuoshuo/"><i class="fa-fw fa fa-comments-o"></i><span> 说说</span></a></li><li><a class="site-page child" href="/photos/"><i class="fa-fw fa fa-camera-retro"></i><span> 相册</span></a></li><li><a class="site-page child" href="/music/"><i class="fa-fw fa fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 影视</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/links/"><i class="fa-fw fa fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/comment/"><i class="fa-fw fa fa-paper-plane"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于笔者</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/image/top4.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><img class="site-icon" src="/image/logo.jpg" alt="Logo"><span class="site-name">今天也要开心！</span></a><a class="nav-page-title" href="/"><span class="site-name">用 DASP 算一遍掺杂缺陷：以 Fe 掺杂 β-Ga₂O₃ 为例</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fa fa-graduation-cap"></i><span> 博文</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fa fa-folder-open"></i><span> 归档</span></a></li></ul></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 生活</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/shuoshuo/"><i class="fa-fw fa fa-comments-o"></i><span> 说说</span></a></li><li><a class="site-page child" href="/photos/"><i class="fa-fw fa fa-camera-retro"></i><span> 相册</span></a></li><li><a class="site-page child" href="/music/"><i class="fa-fw fa fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 影视</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/links/"><i class="fa-fw fa fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/comment/"><i class="fa-fw fa fa-paper-plane"></i><span> 留言板</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于笔者</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">用 DASP 算一遍掺杂缺陷：以 Fe 掺杂 β-Ga₂O₃ 为例</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-10-07T18:30:00.000Z" title="发表于 2026-10-07 18:30:00">2026-10-07</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-10-07T18:30:00.000Z" title="更新于 2026-10-07 18:30:00">2026-10-07</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E7%A7%91%E7%A0%94%E7%AC%94%E8%AE%B0/">科研笔记</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>9分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>做器件的人迟早会撞上一个问题：**”这个杂质&#x2F;缺陷，到底在禁带里埋了多深的能级？浓度有多大？会不会把载流子寿命吃光？”**</p>
+<p>实验上我们靠 DLTS、PL 谱去”量”，但要把谱峰对到具体的缺陷上去，光有实验往往不够。这时候就得请出第一性原理做”解谱”。可缺陷计算这东西，<strong>算得出来</strong>和<strong>算得对</strong>完全是两码事——我最近在用 DASP 做 Fe 掺杂 β-Ga₂O₃ 的缺陷计算，顺手把这套流程和踩过的坑记下来，给同样在坑里的同学省点时间。</p>
+<h2 id="一、为什么掺杂-缺陷计算这么烦"><a href="#一、为什么掺杂-缺陷计算这么烦" class="headerlink" title="一、为什么掺杂&#x2F;缺陷计算这么烦"></a>一、为什么掺杂&#x2F;缺陷计算这么烦</h2><p>掺一个杂质看起来简单，真要算准，麻烦事一箩筐：</p>
+<ul>
+<li><strong>形成能不是一个数</strong>。它既依赖元素化学势 $\mu_i$，又依赖电子费米能级 $E_F$，一次计算给不出唯一答案，得画成”形成能 vs 费米能级”的图。</li>
+<li><strong>构型多到爆炸</strong>。多元化合物、低对称晶格，不等价位点多，再加上各种带电态（$q&#x3D;0,\pm1,\pm2\dots$），手工枚举极易漏算。</li>
+<li><strong>误差要修</strong>。有限超胞 + 周期性边界会带来镜像电荷相互作用，交换关联泛函近似本身也有误差，都得做修正。</li>
+<li><strong>算完成因能只是起点</strong>。真正想要的是浓度、费米能级、俘获截面、少子寿命、PL 谱这些能和实验直接对话的量。</li>
+</ul>
+<p>DASP 的出现，就是把这些零散环节串成一条<strong>自动化流水线</strong>。</p>
+<h2 id="二、DASP-是什么"><a href="#二、DASP-是什么" class="headerlink" title="二、DASP 是什么"></a>二、DASP 是什么</h2><p>DASP（<strong>D</strong>efect and <strong>D</strong>opant <strong>a</strong>b-initio <strong>S</strong>imulation <strong>P</strong>ackage）由复旦大学<strong>陈时友团队</strong>开发、鸿之微（HZWTECH）商业化，方法论文发表于 <em>Journal of Semiconductors</em> <strong>2022, 43, 042101</strong>。</p>
+<p>它的定位一句话说清：<strong>你只给一个半导体晶体结构，它自动吐出热力学稳定性、缺陷&#x2F;杂质形成能与离化能级、载流子与缺陷浓度、费米能级，乃至光致发光谱和载流子寿命。</strong></p>
+<p>它自己不算 DFT，而是充当”调度 + 后处理”平台，去调用 <strong>VASP</strong>（也支持 Quantum ESPRESSO）完成结构弛豫、总能与电子结构计算，再把结果收回来做修正和分析。</p>
+<p>整个软件由<strong>四个模块</strong>构成：</p>
+<table>
+<thead>
+<tr>
+<th align="left">模块</th>
+<th align="left">全称</th>
+<th align="left">干什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>TSC</strong></td>
+<td align="left">Thermodynamic Stability Calculation</td>
+<td align="left">定元素化学势稳定区间，给出纯相稳定条件</td>
+</tr>
+<tr>
+<td align="left"><strong>DEC</strong></td>
+<td align="left">Defect Energy Calculation</td>
+<td align="left">缺陷&#x2F;杂质形成能 + 转变能级（<strong>核心</strong>）</td>
+</tr>
+<tr>
+<td align="left"><strong>DDC</strong></td>
+<td align="left">Defect Density Calculation</td>
+<td align="left">缺陷&#x2F;载流子浓度 + 平衡费米能级</td>
+</tr>
+<tr>
+<td align="left"><strong>CDC</strong></td>
+<td align="left">Carrier Dynamics Calculation</td>
+<td align="left">载流子俘获截面、辐射&#x2F;非辐射复合、少子寿命、PL 谱</td>
+</tr>
+</tbody></table>
+<p>其中 <strong>DEC 是最核心的一块</strong>，因为形成能是后面一切分析的输入。</p>
+<h2 id="三、整条流水线：dasp-1-5"><a href="#三、整条流水线：dasp-1-5" class="headerlink" title="三、整条流水线：dasp 1 ~ 5"></a>三、整条流水线：dasp 1 ~ 5</h2><p>所有计算只需要准备<strong>两个输入文件</strong>：<code>POSCAR</code>（晶体结构）和 <code>dasp.in</code>（参数）。之后按顺序执行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">dasp 1   <span class="comment"># PREPARE：生成 VASP 计算所需的参数与输入文件</span></span><br><span class="line">dasp 2   <span class="comment"># TSC：热力学稳定性，确定元素化学势稳定区间</span></span><br><span class="line">dasp 3   <span class="comment"># DEC：缺陷形成能与转变能级</span></span><br><span class="line">dasp 4   <span class="comment"># DDC：缺陷/载流子浓度与费米能级</span></span><br><span class="line">dasp 5   <span class="comment"># CDC：载流子动力学（PL 谱、俘获截面、少子寿命）</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>实际做浓度分析时，走到 <strong>DDC（到 <code>dasp 4</code>）</strong>往往就已经能回答大部分问题；只有当你关心复合速率、寿命这些动态量时，才需要继续跑 CDC。</p>
+</blockquote>
+<p>跑的过程中不必干等，可以用 <code>tsc-state</code> 和 <code>dec-state</code> 查看 TSC &#x2F; DEC 的进度：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tsc-state     <span class="comment"># 查看 TSC 模块进度</span></span><br><span class="line">dec-state     <span class="comment"># 查看 DEC 模块进度</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="四、dasp-in-里几个必须搞懂的参数"><a href="#四、dasp-in-里几个必须搞懂的参数" class="headerlink" title="四、dasp.in 里几个必须搞懂的参数"></a>四、dasp.in 里几个必须搞懂的参数</h2><p><code>dasp.in</code> 是整条流水线的”方向盘”，几个参数值得单独拎出来说：</p>
+<ul>
+<li><strong><code>level</code></strong> —— 计算精度档位，直接决定用什么泛函。<br><strong><code>level = 2</code> 的含义是：先用 PBE 做结构优化，再用 HSE 杂化泛函算总能。</strong> 这也是我算宽禁带氧化物时的选择——PBE 会严重低估带隙，HSE 才能给出可信的缺陷能级位置。代价是算得慢，尤其带电缺陷那一批。</li>
+<li><strong><code>doping = T</code></strong> —— 打开掺杂计算，DEC 会按掺杂元素的替位&#x2F;间隙构型去生成缺陷结构。</li>
+<li><strong><code>impurity = Fe</code></strong> —— 指定掺杂（杂质）元素符号。</li>
+<li><strong><code>correction = FNV</code></strong> —— 带电缺陷的有限尺寸修正方案。宽禁带材料里这项不能省，否则带电缺陷形成能会飘。</li>
+</ul>
+<p>这几个参数一旦写错，往往不报错，只是结果悄悄偏掉——所以每次改完都值得回头核一遍。</p>
+<h2 id="五、实战：Fe-掺杂-β-Ga₂O₃"><a href="#五、实战：Fe-掺杂-β-Ga₂O₃" class="headerlink" title="五、实战：Fe 掺杂 β-Ga₂O₃"></a>五、实战：Fe 掺杂 β-Ga₂O₃</h2><p>β-Ga₂O₃ 是超宽禁带（~4.9 eV）材料，Fe 是常用的受主型掺杂&#x2F;补偿元素，也是深能级”陷阱”的常客。下面按模块走一遍。</p>
+<h3 id="5-1-TSC：先把化学势的地基打好"><a href="#5-1-TSC：先把化学势的地基打好" class="headerlink" title="5.1 TSC：先把化学势的地基打好"></a>5.1 TSC：先把化学势的地基打好</h3><p><code>dasp 2</code> 跑 TSC 时，会在工作目录下生成 <code>tsc/</code> 子目录和进度文件 <code>2tsc.out</code>。等它出现完成标志后，打开 <code>dasp.in</code> 确认<strong>化学势已被程序自动填入</strong>。</p>
+<p>TSC 会去访问 Materials Project 等材料基因组数据库，把可能限制 β-Ga₂O₃ 相稳定的<strong>竞争相</strong>都找出来，再据此算出让纯相稳定的元素化学势范围——通常对应两类极端条件：</p>
+<ul>
+<li><strong>p1：Ga-rich</strong>（富镓）</li>
+<li><strong>p2：O-rich</strong>（富氧）</li>
+</ul>
+<p>这两个端点条件，直接影响后面 Fe 掺入的难易程度，所以形成能图一般都要<strong>分别给出 p1、p2 两张</strong>。</p>
+<h3 id="5-2-DEC：生成缺陷-→-中性-→-带电"><a href="#5-2-DEC：生成缺陷-→-中性-→-带电" class="headerlink" title="5.2 DEC：生成缺陷 → 中性 → 带电"></a>5.2 DEC：生成缺陷 → 中性 → 带电</h3><p>确认 TSC 完成后，回到上层目录执行 <code>dasp 3</code>。DEC 会：</p>
+<ol>
+<li><strong>构建近似立方超胞</strong>，基于晶体对称性枚举 Fe 的可能构型。β-Ga₂O₃ 里 Ga 有两种不等价位（四面体位 Ga(I)、八面体位 Ga(II)），所以 Fe 的替位缺陷 <code>Fe_Ga</code> 会按对称性生成相应构型，并落到 <code>dec/Doping_Fe/</code> 下的子目录。</li>
+<li><strong>先算中性态（$q&#x3D;0$）</strong>：对每个中性缺陷调用 VASP 做 PBE 优化 + HSE 总能。<strong>这一步最耗时</strong>，日志在 <code>3dec.out</code> 里滚动。</li>
+<li><strong>再生成带电态（$q\neq0$）</strong>：等中性态算完，程序根据缺陷能级在禁带中的位置判断各缺陷可能的价态范围，自动生成带电缺陷目录并提交计算。对报错（<code>undo / failed / not converged</code>）或跳过（<code>skip</code>）的缺陷，日志里会有提示。</li>
+<li><strong>算修正</strong>：所有带电缺陷算完后，按 <code>correction = FNV</code> 计算有限尺寸修正，再算出<strong>形成能</strong>和<strong>转变能级</strong>。</li>
+</ol>
+<p>每个缺陷各价态的修正量和形成能具体数值，都记录在 <code>3dec.out</code> 中；而全部形成能与转变能级数据，则汇总在各缺陷目录下的 <strong><code>defect.log</code></strong> 文件里——<strong>这个文件是后面做图和分析的主要数据来源。</strong></p>
+<h3 id="5-3-结果图"><a href="#5-3-结果图" class="headerlink" title="5.3 结果图"></a>5.3 结果图</h3><p>DEC 收尾时会自动输出两类图：</p>
+<ul>
+<li><strong>形成能 vs 费米能级</strong>：分别对应 p1（Ga-rich）和 p2（O-rich）两个化学势端点。曲线的<strong>折点</strong>就是转变能级位置。</li>
+<li><strong>各缺陷的转变能级图</strong>：一眼看出哪些能级是深能级（靠近禁带中央，容易当复合中心）、哪些是浅能级。</li>
+</ul>
+<p>对 Fe 掺杂来说，最关心的就是 <strong>Fe 相关能级落在禁带的什么位置</strong>——这决定了它是做个安分的补偿受主，还是变成吞噬载流子寿命的深能级陷阱。</p>
+<h2 id="六、形成能到底怎么算的"><a href="#六、形成能到底怎么算的" class="headerlink" title="六、形成能到底怎么算的"></a>六、形成能到底怎么算的</h2><p>DEC 的核心就是下面这个式子，点形成能 $\Delta E_f(\alpha, q)$：</p>
+<p>$$<br>\Delta E_f(\alpha, q) &#x3D; E(\alpha, q) - E(\mathrm{bulk}) - \sum_i n_i(\mu_i + E_i) + q(E_F + \epsilon_{\mathrm{VBM}}) + E_{\mathrm{corr}}<br>$$</p>
+<p>各项含义：</p>
+<ul>
+<li>$E(\alpha,q)$：含缺陷 $\alpha$、带电态 $q$ 的超胞总能量；</li>
+<li>$E(\mathrm{bulk})$：完整超胞（无缺陷）的总能量；</li>
+<li>$n_i$、$\mu_i$、$E_i$：缺陷引入&#x2F;移走的第 $i$ 种原子的个数、化学势、以及纯固&#x2F;气相参考能量；</li>
+<li>$q,(E_F + \epsilon_{\mathrm{VBM}})$：电子与费米能级交换的贡献，$\epsilon_{\mathrm{VBM}}$ 为价带顶本征值；</li>
+<li>$E_{\mathrm{corr}}$：有限超胞 + 周期边界带来的镜像电荷等修正（即 FNV 那一套）。</li>
+</ul>
+<p><strong>注意 $E_F$ 是变量</strong>——所以形成能天然是一条条随 $E_F$ 变化的直线，直线的斜率就是电荷态 $q$，折点即转变能级。理解这一点，”形成能图”就不再是玄学。</p>
+<h2 id="七、DDC：从形成能到浓度和费米能级"><a href="#七、DDC：从形成能到浓度和费米能级" class="headerlink" title="七、DDC：从形成能到浓度和费米能级"></a>七、DDC：从形成能到浓度和费米能级</h2><p>有了形成能，<code>dasp 4</code>（DDC）就能进一步解<strong>电中性方程</strong>，自洽地给出：</p>
+<ul>
+<li>各缺陷&#x2F;杂质的<strong>平衡浓度</strong>；</li>
+<li>半导体样品的<strong>平衡费米能级</strong>；</li>
+<li><strong>电子&#x2F;空穴载流子浓度</strong>。</li>
+</ul>
+<p>而且它分<strong>两步自洽</strong>：先在<strong>高温生长条件</strong>下解一次，再在<strong>低温工作（测量）条件</strong>下解一次——因为缺陷浓度是”冻结”在生长温度、而费米能级是工作温度下定的。这个细节对宽禁带材料尤其关键。</p>
+<p>DDC 的结果能直接告诉你：<strong>在给定生长条件下，谁是起主导作用的缺陷</strong>，并且可以和实验测到的浓度做对比，为缺陷&#x2F;载流子调控提供定量依据。</p>
+<h2 id="八、CDC（可选）：寿命与-PL-谱"><a href="#八、CDC（可选）：寿命与-PL-谱" class="headerlink" title="八、CDC（可选）：寿命与 PL 谱"></a>八、CDC（可选）：寿命与 PL 谱</h2><p>如果你要回答”Fe 这个深能级会不会缩短载流子寿命”，那就得继续 <code>dasp 5</code>（CDC）。它会：</p>
+<ul>
+<li>计算缺陷&#x2F;杂质超胞的<strong>声子谱</strong>、<strong>电声耦合矩阵</strong>、缺陷态与 VBM&#x2F;CBM 之间的<strong>跃迁偶极矩</strong>；</li>
+<li>据此给出<strong>辐射&#x2F;非辐射跃迁速率（载流子俘获截面）</strong>和<strong>缺陷诱导的 PL 谱线型</strong>；</li>
+<li>结合 DDC 得到的平衡缺陷浓度与载流子浓度，进一步算出 <strong>Shockley-Read-Hall 复合率</strong>和<strong>非平衡载流子寿命</strong>。</li>
+</ul>
+<p>对光电导开关（PCSS）这类靠载流子寿命吃饭的器件，这一步的结论几乎是直接对口的。</p>
+<h2 id="九、踩坑清单（血泪版）"><a href="#九、踩坑清单（血泪版）" class="headerlink" title="九、踩坑清单（血泪版）"></a>九、踩坑清单（血泪版）</h2><ol>
+<li><strong>泛函别偷懒</strong>。宽禁带材料一定上 HSE（<code>level = 2</code>），纯 PBE 的带隙和能级位置基本不能信。</li>
+<li><strong>化学势两端都要算</strong>。只看富镓或只看富氧，结论可能完全反过来；形成能图必须成对给。</li>
+<li><strong>FNV 修正别关</strong>。带电缺陷的修正项一旦省掉，形成能会系统性偏移。</li>
+<li><strong>盯日志</strong>。<code>2tsc.out</code> &#x2F; <code>3dec.out</code> 会明确标出 <code>failed</code>、<code>not converged</code>、<code>skip</code> 的缺陷，别默认全算成功了。</li>
+<li>**数据在 <code>defect.log</code>**。别去一个个翻目录，形成能和转变能级的汇总都在这里。</li>
+<li><strong>超胞要够大</strong>。受限于算力想省超胞，最好先做个收敛性测试，否则尺寸带来的误差可能盖过物理效应。</li>
+<li><strong>进度用 <code>tsc-state</code> &#x2F; <code>dec-state</code> 看</strong>，别盲目重复提交。</li>
+</ol>
+<h2 id="十、算完之后：跟实验和器件仿真怎么接"><a href="#十、算完之后：跟实验和器件仿真怎么接" class="headerlink" title="十、算完之后：跟实验和器件仿真怎么接"></a>十、算完之后：跟实验和器件仿真怎么接</h2><p>DASP 的价值不止于”出一张形成能图”。它的输出可以直接当<strong>深能级瞬态谱（DLTS）、光致发光谱（PL）、正电子湮没谱</strong>等表征的”<strong>解谱工具</strong>“——把实验峰和计算能级对上号。</p>
+<p>更妙的是，DASP 给出的缺陷&#x2F;杂质性质、载流子浓度和寿命，<strong>可以直接喂给商业 TCAD 器件仿真</strong>当输入参数。这一下就把链路打通了：</p>
+<blockquote>
+<p><strong>第一性原理（VASP） → DASP（缺陷性质） → TCAD（器件仿真）</strong></p>
+</blockquote>
+<p>也就是从<strong>材料</strong>到<strong>器件</strong>的多尺度贯通。对我做的 Ga₂O₃ &#x2F; GaN 光电导开关研究来说，这条路正好把”材料属性 → 器件性能”串了起来——先在原子尺度搞清楚 Fe 掺进去究竟造了什么能级，再把它交给器件层面去看对功率、耐压、寿命的最终影响。</p>
+<hr>
+<p><em>参考：DASP: Defect and Dopant ab-initio Simulation Package, M. Huang et al., J. Semicond. 43, 042101 (2022); DASP 官方文档（鸿之微）。本文为个人实践笔记，具体参数请以你所用版本的官方文档为准。</em></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://shine-1314521.github.io">会飞的皮卡</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://shine-1314521.github.io/posts/716204583.html">https://shine-1314521.github.io/posts/716204583.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://shine-1314521.github.io" target="_blank">今天也要开心！</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/DASP/">DASP</a><a class="post-meta__tags" href="/tags/%E7%AC%AC%E4%B8%80%E6%80%A7%E5%8E%9F%E7%90%86/">第一性原理</a><a class="post-meta__tags" href="/tags/%E7%BC%BA%E9%99%B7%E8%AE%A1%E7%AE%97/">缺陷计算</a><a class="post-meta__tags" href="/tags/%E6%8E%BA%E6%9D%82/">掺杂</a><a class="post-meta__tags" href="/tags/%CE%B2-Ga2O3/">β-Ga2O3</a><a class="post-meta__tags" href="/tags/VASP/">VASP</a><a class="post-meta__tags" href="/tags/HSE/">HSE</a></div><div class="post-share"><div class="social-share" data-image="/image/top4.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="/css/share.min.css" media="print" onload="this.media='all'"><script src="/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/posts/894301572.html" title="西电雨课堂-科学道德与学风答案"><img class="cover" src="/image/top.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">西电雨课堂-科学道德与学风答案</div></div><div class="info-2"><div class="info-item-1"> 转载说明本文转载自 洛天的小窝，原作者 Luo Tian（洛天）。原文链接：https://www.luotian.cyou/post/Sci-ethics-ethos.html原文发布于 2025-06-27，最后更新于 2026-02-27。原文采用 CC BY-NC-SA 4.0 许可协议，本文依协议转载，并以相同方式共享（署名-非商业性使用-相同方式共享 4.0）。内容仅供学习交流使用。   前言：期末考试从章节练习题中选取，不单独列出。题目为自行整理。  仅限学习交流  第一章 1956年，谁撰写的《工程控制论》获国家科学一等奖A、钱学森 中国在什么时间成功爆炸第一颗原子弹A、1964年10月16日 中国在什么时间成功爆炸了氢弹A、1967年6月17日 1999年国庆50周年前夕，中共中央、国务院、中央军委授予多少名科技工作者以每由515克纯金制成的“两弹一星功勋奖章”C、23名 “科学没有国界，科学家却是有祖国的”是谁的名句C、钱三强 在五、六十年代的中国，科学界素有“三钱”之称谓A、钱学森B、钱三强C、钱伟长 王平主编的《微波传播》一书在哪一年初版B、1977  ...</div></div></div></a><a class="pagination-related" href="/posts/687669053.html" title="西电南校区的桂花开了"><img class="cover" src="/image/guihua.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">西电南校区的桂花开了</div></div><div class="info-2"><div class="info-item-1">南校区的桂花，是那种不声张、但离着老远就能把你勾住的香。 从宿舍楼到实验室的那条路，拐过图书馆的墙角，风一吹，一整片的甜就扑过来。不是香水那种刺鼻的甜，是带点糯、带点温热的甜，像小时候街口那家糖炒栗子的味道，只不过这次裹在风里，混着傍晚的凉。  桂花这种花很有意思，单看每一朵都小得不起眼，米粒似的，藏在叶子底下。可它们凑在一起，硬是把整个秋天都染香了。我常常想，人大概也这样——一个人埋头做事，没人在意；可一群认真活着的人凑到一起，日子就有了温度和味道。 西安的秋天短得可怜，常常是夏天一转身，冬天就挤进来了。所以每年桂花开的这几天，都显得格外珍贵。实验室的同门说，桂花一开，就说明这一年又快过到头了。我算了算，来西电已经第二个年头，好像什么都在变，又好像什么都还是老样子。 今晚回宿舍，特意绕了点路，从那排桂花树下慢慢走。香得很满，满到让人想停下来，把这一口秋气，好好地、完整地吸进肺里。 —— 2026 年秋，记于西电南校区。 </div></div></div></a></nav><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="utterances-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/image/tx.webp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">会飞的皮卡</div><div class="author-info-description">记录读研日常、技术笔记与生活碎碎念的个人博客</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">6</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">21</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">4</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/shine-1314521/shine-1314521.github.io"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="/atom.xml" target="_blank" title="RSS"><i class="fas fa-rss" style="color: #ff7f24;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">希望有一天，我可以不用对着手机屏幕和你说晚安，你就在我身边。</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E4%B8%BA%E4%BB%80%E4%B9%88%E6%8E%BA%E6%9D%82-%E7%BC%BA%E9%99%B7%E8%AE%A1%E7%AE%97%E8%BF%99%E4%B9%88%E7%83%A6"><span class="toc-number">1.</span> <span class="toc-text">一、为什么掺杂&#x2F;缺陷计算这么烦</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81DASP-%E6%98%AF%E4%BB%80%E4%B9%88"><span class="toc-number">2.</span> <span class="toc-text">二、DASP 是什么</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E6%95%B4%E6%9D%A1%E6%B5%81%E6%B0%B4%E7%BA%BF%EF%BC%9Adasp-1-5"><span class="toc-number">3.</span> <span class="toc-text">三、整条流水线：dasp 1 ~ 5</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81dasp-in-%E9%87%8C%E5%87%A0%E4%B8%AA%E5%BF%85%E9%A1%BB%E6%90%9E%E6%87%82%E7%9A%84%E5%8F%82%E6%95%B0"><span class="toc-number">4.</span> <span class="toc-text">四、dasp.in 里几个必须搞懂的参数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E5%AE%9E%E6%88%98%EF%BC%9AFe-%E6%8E%BA%E6%9D%82-%CE%B2-Ga%E2%82%82O%E2%82%83"><span class="toc-number">5.</span> <span class="toc-text">五、实战：Fe 掺杂 β-Ga₂O₃</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-TSC%EF%BC%9A%E5%85%88%E6%8A%8A%E5%8C%96%E5%AD%A6%E5%8A%BF%E7%9A%84%E5%9C%B0%E5%9F%BA%E6%89%93%E5%A5%BD"><span class="toc-number">5.1.</span> <span class="toc-text">5.1 TSC：先把化学势的地基打好</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-DEC%EF%BC%9A%E7%94%9F%E6%88%90%E7%BC%BA%E9%99%B7-%E2%86%92-%E4%B8%AD%E6%80%A7-%E2%86%92-%E5%B8%A6%E7%94%B5"><span class="toc-number">5.2.</span> <span class="toc-text">5.2 DEC：生成缺陷 → 中性 → 带电</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-3-%E7%BB%93%E6%9E%9C%E5%9B%BE"><span class="toc-number">5.3.</span> <span class="toc-text">5.3 结果图</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E5%BD%A2%E6%88%90%E8%83%BD%E5%88%B0%E5%BA%95%E6%80%8E%E4%B9%88%E7%AE%97%E7%9A%84"><span class="toc-number">6.</span> <span class="toc-text">六、形成能到底怎么算的</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81DDC%EF%BC%9A%E4%BB%8E%E5%BD%A2%E6%88%90%E8%83%BD%E5%88%B0%E6%B5%93%E5%BA%A6%E5%92%8C%E8%B4%B9%E7%B1%B3%E8%83%BD%E7%BA%A7"><span class="toc-number">7.</span> <span class="toc-text">七、DDC：从形成能到浓度和费米能级</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AB%E3%80%81CDC%EF%BC%88%E5%8F%AF%E9%80%89%EF%BC%89%EF%BC%9A%E5%AF%BF%E5%91%BD%E4%B8%8E-PL-%E8%B0%B1"><span class="toc-number">8.</span> <span class="toc-text">八、CDC（可选）：寿命与 PL 谱</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B9%9D%E3%80%81%E8%B8%A9%E5%9D%91%E6%B8%85%E5%8D%95%EF%BC%88%E8%A1%80%E6%B3%AA%E7%89%88%EF%BC%89"><span class="toc-number">9.</span> <span class="toc-text">九、踩坑清单（血泪版）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E3%80%81%E7%AE%97%E5%AE%8C%E4%B9%8B%E5%90%8E%EF%BC%9A%E8%B7%9F%E5%AE%9E%E9%AA%8C%E5%92%8C%E5%99%A8%E4%BB%B6%E4%BB%BF%E7%9C%9F%E6%80%8E%E4%B9%88%E6%8E%A5"><span class="toc-number">10.</span> <span class="toc-text">十、算完之后：跟实验和器件仿真怎么接</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/posts/5821047391.html" title="西电雨课堂-学术规范与论文写作答案"><img src="/image/top.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="西电雨课堂-学术规范与论文写作答案"/></a><div class="content"><a class="title" href="/posts/5821047391.html" title="西电雨课堂-学术规范与论文写作答案">西电雨课堂-学术规范与论文写作答案</a><time datetime="2026-10-09T13:50:00.000Z" title="发表于 2026-10-09 13:50:00">2026-10-09</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/3150749206.html" title="西电《绿色创新理论与实践》章节测试参考答案整理"><img src="/image/top4.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="西电《绿色创新理论与实践》章节测试参考答案整理"/></a><div class="content"><a class="title" href="/posts/3150749206.html" title="西电《绿色创新理论与实践》章节测试参考答案整理">西电《绿色创新理论与实践》章节测试参考答案整理</a><time datetime="2026-10-09T13:00:00.000Z" title="发表于 2026-10-09 13:00:00">2026-10-09</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/894301572.html" title="西电雨课堂-科学道德与学风答案"><img src="/image/top.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="西电雨课堂-科学道德与学风答案"/></a><div class="content"><a class="title" href="/posts/894301572.html" title="西电雨课堂-科学道德与学风答案">西电雨课堂-科学道德与学风答案</a><time datetime="2026-10-09T10:50:00.000Z" title="发表于 2026-10-09 10:50:00">2026-10-09</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/716204583.html" title="用 DASP 算一遍掺杂缺陷：以 Fe 掺杂 β-Ga₂O₃ 为例"><img src="/image/top4.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="用 DASP 算一遍掺杂缺陷：以 Fe 掺杂 β-Ga₂O₃ 为例"/></a><div class="content"><a class="title" href="/posts/716204583.html" title="用 DASP 算一遍掺杂缺陷：以 Fe 掺杂 β-Ga₂O₃ 为例">用 DASP 算一遍掺杂缺陷：以 Fe 掺杂 β-Ga₂O₃ 为例</a><time datetime="2026-10-07T18:30:00.000Z" title="发表于 2026-10-07 18:30:00">2026-10-07</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/687669053.html" title="西电南校区的桂花开了"><img src="/image/guihua.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="西电南校区的桂花开了"/></a><div class="content"><a class="title" href="/posts/687669053.html" title="西电南校区的桂花开了">西电南校区的桂花开了</a><time datetime="2026-09-29T19:06:32.000Z" title="发表于 2026-09-29 19:06:32">2026-09-29</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2020 - 2026 By 会飞的皮卡</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.2</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.7.0</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.7.0"></script><script src="/js/main.js?v=5.7.0"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.14/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(() => {
+  const changeScriptToMath = article => {
+    article.querySelectorAll('script[type^="math/tex"]').forEach(el => {
+      const display = /mode=display/.test(el.type)
+      const node = document.createElement(display ? 'div' : 'span')
+      node.textContent = display
+        ? `$$${el.textContent}$$`
+        : `$${el.textContent}$`
+      el.parentNode.replaceChild(node, el)
+    })
+  }
+
+  const loadMathjax = () => {
+    const article = document.getElementById('article-container')
+    if (!article || article.querySelector('.hbe-container')) return
+    changeScriptToMath(article)
+
+    if (!window.MathJax) {
+      window.MathJax = {
+        loader: {
+          load: [
+            // Four font extension packages (optional)
+            //- '[tex]/bbm',
+            //- '[tex]/bboldx',
+            //- '[tex]/dsfont',
+            '[tex]/mhchem',
+            'ui/lazy'
+          ],
+          paths: {
+            'mathjax-newcm': '[mathjax]/../@mathjax/mathjax-newcm-font',
+
+            //- // Four font extension packages (optional)
+            //- 'mathjax-bbm-extension': '[mathjax]/../@mathjax/mathjax-bbm-font-extension',
+            //- 'mathjax-bboldx-extension': '[mathjax]/../@mathjax/mathjax-bboldx-font-extension',
+            //- 'mathjax-dsfont-extension': '[mathjax]/../@mathjax/mathjax-dsfont-font-extension',
+            'mathjax-mhchem-extension': '[mathjax]/../@mathjax/mathjax-mhchem-font-extension'
+          }
+        },
+        output: {
+          font: 'mathjax-newcm',
+        },
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          tags: 'none',
+          packages: {
+            '[+]': [
+              'mhchem'
+            ]
+          }
+        },
+        chtml: {
+          scale: 1.1
+        },
+        options: {
+          lazyMargin: '200px',
+          enableMenu: true,
+          menuOptions: {
+            settings: {
+              enrich: false  // Turn off Braille and voice narration text automatic generation
+            }
+          },
+        }
+      }
+
+      const script = document.createElement('script')
+      script.src = 'https://cdn.jsdelivr.net/npm/mathjax@4.1.3/tex-mml-chtml.min.js'
+      script.id = 'MathJax-script'
+      script.async = true
+      document.head.appendChild(script)
+    } else {
+      MathJax.typesetClear()
+      MathJax.typesetPromise([ article ])
+    }
+  }
+
+  btf.addGlobalFn('encrypt', loadMathjax, 'mathjax')
+  window.pjax ? loadMathjax() : window.addEventListener('load', loadMathjax)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+  const getUtterancesTheme = theme => theme === 'dark' ? 'photon-dark' : 'github-light'
+
+  const loadUtterances = (el = document, key) => {
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyUtterances = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+
+    const config = {
+      src: 'https://utteranc.es/client.js',
+      repo: 'shine-1314521/shine-1314521.github.io',
+      theme: getUtterancesTheme(document.documentElement.getAttribute('data-theme')),
+      crossorigin: 'anonymous',
+      async: true,
+      ...option,
+      'issue-term': isShuoshuo ? key : (option && option['issue-term']) || 'pathname'
+    }
+
+    const ele = document.createElement('script')
+    Object.entries(config).forEach(([key, value]) => ele.setAttribute(key, value))
+    el.querySelector('#utterances-wrap').appendChild(ele)
+  }
+
+  const changeUtterancesTheme = theme => {
+    const iframe = document.querySelector('#utterances-wrap iframe')
+    if (iframe) {
+      const message = {
+        type: 'set-theme',
+        theme: getUtterancesTheme(theme)
+      };
+      iframe.contentWindow.postMessage(message, 'https://utteranc.es')
+    }
+  }
+
+  btf.addGlobalFn('themeChange', changeUtterancesTheme, 'utterances')
+
+  if (isShuoshuo) {
+    'Utterances' === 'Utterances'
+      ? window.shuoshuoComment = { loadComment: loadUtterances }
+      : window.loadOtherComment = loadUtterances
+    return
+  }
+  
+  if ('Utterances' === 'Utterances' || !false) {
+    if (false) btf.loadComment(document.getElementById('utterances-wrap'), loadUtterances)
+    else loadUtterances()
+  } else {
+    window.loadOtherComment = loadUtterances
+  }
+})()</script></div><script>(function(){var W='live2d-widget';var M=['今天也要开心呀～','欢迎来看看我的博客','点一下我会说话哦','西电的桂花开了吗？','在算缺陷形成能，有点头大…','记得喝水呀','累了就起来走走','这篇博客写了好久','音乐播放器在左下角','夜深了，早点睡'];function pick(){return M[Math.floor(Math.random()*M.length)]}function greet(){var h=new Date().getHours();if(h<6)return '夜深了，早点休息呀～';if(h<11)return '早上好，今天也要加油！';if(h<14)return '午饭吃了吗？';if(h<18)return '下午好，摸鱼要适度哦';if(h<23)return '晚上好，欢迎来看看～';return '很晚了，注意休息'}var box=null,bub=null,timer=null;function setup(){box=document.getElementById(W);if(!box)return false;if(!bub){bub=document.createElement('div');bub.className='l2d-bubble';box.appendChild(bub);box.addEventListener('click',function(){say(pick())});box.addEventListener('mouseenter',function(){say(pick())})}return true}function say(t){if(!bub)return;bub.textContent=t;bub.classList.add('show');clearTimeout(timer);timer=setTimeout(function(){bub.classList.remove('show')},4200)}var tries=0;var iv=setInterval(function(){tries++;if(setup()){clearInterval(iv);say(greet());setInterval(function(){if(Math.random()<0.4)say(pick())},26000)}else if(tries>80)clearInterval(iv)},250)})();</script><script src="/js/aplayer.min.js"></script><script>var meting_api="https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&r=:r";</script><script src="/js/Meting.min.js"></script><div class="aplayer no-destroy" data-id="3778678" data-server="netease" data-type="playlist" data-fixed="true" data-mini="true" data-autoplay="false" data-order="list" data-loop="all" data-preload="auto" data-volume="0.7" data-mutex="true"></div><script src="/js/drag.js"></script><script>(function(){function list(){return (window.aplayers||[]).filter(function(a){return a&&a.options&&a.options.fixed})}function apply(n){var l=list();if(!l.length){if(n<30)setTimeout(function(){apply(n+1)},100);return}var isMusic=/^\/music\/?$/.test(location.pathname);l.forEach(function(a){if(isMusic){try{a.pause()}catch(e){}}})}document.addEventListener('DOMContentLoaded',function(){apply(0)});document.addEventListener('pjax:complete',function(){apply(0)});if(document.readyState!=='loading')apply(0)})();</script><script>(function(){function load(){var w=document.getElementById('utterances-wrap');if(!w||w.children.length)return;var s=document.createElement('script');s.src='https://utteranc.es/client.js';s.setAttribute('repo','shine-1314521/shine-1314521.github.io');s.setAttribute('issue-term','pathname');s.setAttribute('theme',document.documentElement.getAttribute('data-theme')==='dark'?'github-dark':'github-light');s.setAttribute('crossorigin','anonymous');s.async=true;w.appendChild(s)}document.addEventListener('pjax:complete',function(){setTimeout(load,800)})})();</script><script>(function(){document.addEventListener('pjax:complete',function(){setTimeout(function(){try{typeof loadMeting==='function'&&loadMeting()}catch(e){}},120)})})();</script><script src="https://cdn.jsdelivr.net/npm/pangu@4.0.7/dist/browser/pangu.min.js"></script><script>document.addEventListener('DOMContentLoaded',function(){window.pangu&&pangu.spacingPage()});document.addEventListener('pjax:complete',function(){window.pangu&&pangu.spacingPage()});</script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/activate-power-mode.min.js"></script><script>POWERMODE.colorful = true;
+POWERMODE.shake = true;
+POWERMODE.mobile = false;
+document.body.addEventListener('input', POWERMODE);
+</script><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/dist/click-heart.min.js" async="async" mobile="true"></script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js" defer="defer"></script><script>document.addEventListener('DOMContentLoaded', () => {
+  const pjaxSelectors = ["meta[property=\"og:image\"]","meta[property=\"og:title\"]","meta[property=\"og:url\"]","meta[property=\"og:description\"]","link[rel=\"canonical\"]","head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"]):not([data-fancybox])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      if (!item.parentNode) return
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || ''
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    const responseURL = e.request && e.request.responseURL
+    if (e.request && e.request.status === 404) {
+      true
+        ? pjax.loadUrl('/404.html')
+        : responseURL && (window.location.href = responseURL)
+    } else if (responseURL) {
+      window.location.href = responseURL
+    }
+  })
+})</script><script async data-pjax src="https://cn.vercount.one/js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.7.0"></script></div></div><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/hibiki.model.json"},"display":{"position":"right","width":150,"height":350},"mobile":{"show":true,"scale":0.8,"motion":true},"react":{"opacity":1},"dialog":{"enable":false,"hitokoto":false},"log":false});</script></body></html>
