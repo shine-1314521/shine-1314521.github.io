@@ -1,0 +1,321 @@
+/* 瑶妹看板娘 —— 素材来自本地桌宠项目 pet_app（transparent/*.png → WebP）
+ * 静态图 + 按需加载的微动动画（animated WebP）。
+ * 交互层（菜单 / 对话 / 状态条）沿用像素风：直角、粗描边、硬阴影、等宽字体。
+ * 容器沿用 id="live2d-widget"，以复用 l2d-bubble.css 的像素气泡定位。
+ */
+
+#live2d-widget.chibi {
+  position: fixed;
+  right: 6px;
+  bottom: 0;
+  width: 150px;
+  height: 208px;
+  display: flex;
+  align-items: flex-end;      /* 底部对齐：不同宽高的图切换时不跳动 */
+  justify-content: center;
+  z-index: 90;                /* 低于 #rightside(100)，右侧回到顶部等按钮仍可点 */
+  cursor: grab;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;         /* 允许拖动，不触发页面滚动 */
+}
+
+/* 拖动过之后改用 left/top 定位，必须撤掉 right/bottom */
+#live2d-widget.chibi.moved { right: auto; bottom: auto; }
+#live2d-widget.chibi.dragging { cursor: grabbing; }
+#live2d-widget.chibi.dragging img { animation: none; }
+
+#live2d-widget.chibi img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: bottom center;
+  filter: drop-shadow(0 6px 10px rgba(30, 40, 60, .18));
+  transform-origin: bottom center;
+  /* 待机呼吸：上下轻浮，幅度刻意小 */
+  animation: chibi-idle 4s ease-in-out infinite;
+  transition: filter .3s ease;
+  pointer-events: none;       /* 事件统一由容器接，避免 img 吞掉拖动 */
+  -webkit-user-drag: none;    /* 禁掉图片原生拖拽，否则会打断 pointer 事件 */
+  user-select: none;
+}
+
+#live2d-widget.chibi:hover img {
+  filter: drop-shadow(0 8px 14px rgba(30, 40, 60, .26)) brightness(1.02);
+}
+
+@keyframes chibi-idle {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-5px) scale(1.006); }
+}
+
+/* 点击 / 换装时的小跳 */
+#live2d-widget.chibi.boing img {
+  animation: chibi-boing .42s cubic-bezier(.3, 1.6, .5, 1);
+}
+
+@keyframes chibi-boing {
+  0%   { transform: translateY(0) scale(1); }
+  40%  { transform: translateY(-12px) scale(1.03, .98); }
+  70%   { transform: translateY(0) scale(.98, 1.03); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* 打盹：呼吸放慢，整体压暗一点 */
+#live2d-widget.chibi.dozing img {
+  animation: chibi-idle 7s ease-in-out infinite;
+  filter: drop-shadow(0 4px 8px rgba(30, 40, 60, .16)) brightness(.94);
+}
+
+/* 关掉动效（JS 里 MOTION=false 时给容器加 still）：待机浮动、小跳、打盹呼吸全停，
+   只换图不晃。放在 dozing 之后，保证同权重时这条生效。 */
+#live2d-widget.chibi.still img,
+#live2d-widget.chibi.still.dozing img,
+#live2d-widget.chibi.still.boing img {
+  animation: none;
+}
+
+/* ---------- 状态条 ---------- */
+.chibi-stats {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translate(-50%, 6px);
+  width: 150px;
+  padding: 7px 9px;
+  background: #fffdf5;
+  border: 3px solid #5b8ac9;
+  box-shadow: 4px 4px 0 #cfdcf0;
+  font-family: 'Zpix', 'Fusion Pixel 12px monospaced', 'Courier New', monospace;
+  font-size: 11px;
+  color: #3b4252;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .16s steps(3), transform .16s steps(3);
+  z-index: 99998;
+}
+
+.chibi-stats.show { opacity: 1; transform: translate(-50%, 0); }
+
+.chibi-stats .row { display: flex; align-items: center; gap: 6px; line-height: 1.9; }
+.chibi-stats .row span { width: 26px; flex: none; letter-spacing: 0; }
+.chibi-stats .row i {
+  flex: 1;
+  height: 9px;
+  border: 2px solid #5b8ac9;
+  background: #eef2f8;
+  display: block;
+  overflow: hidden;
+}
+.chibi-stats .row b { display: block; height: 100%; transition: width .3s steps(6); }
+.chibi-stats .row em { width: 20px; text-align: right; font-style: normal; flex: none; }
+
+/* ---------- 右键菜单 ---------- */
+.chibi-menu {
+  position: fixed;
+  display: none;
+  flex-direction: column;
+  min-width: 96px;
+  padding: 4px;
+  background: #fffdf5;
+  border: 3px solid #5b8ac9;
+  box-shadow: 4px 4px 0 #cfdcf0;
+  font-family: 'Zpix', 'Fusion Pixel 12px monospaced', 'Courier New', monospace;
+  font-size: 13px;
+  z-index: 100000;
+}
+
+.chibi-menu.show { display: flex; }
+
+.chibi-menu button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #3b4252;
+  font: inherit;
+  letter-spacing: .5px;
+  text-align: left;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.chibi-menu button:hover { background: #e8f0fb; }
+.chibi-menu button:active { background: #d8e6f8; }
+
+/* ---------- 对话面板 ---------- */
+.chibi-chat {
+  position: fixed;
+  right: 164px;
+  bottom: 12px;
+  width: 272px;
+  display: none;
+  flex-direction: column;
+  background: #fffdf5;
+  border: 3px solid #5b8ac9;
+  box-shadow: 4px 4px 0 #cfdcf0;
+  font-family: 'Zpix', 'Fusion Pixel 12px monospaced', 'Courier New', monospace;
+  font-size: 12px;
+  color: #3b4252;
+  z-index: 100001;
+}
+
+.chibi-chat.show { display: flex; }
+
+.chibi-chat .hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-bottom: 2px solid #cfdcf0;
+  letter-spacing: .5px;
+}
+
+.chibi-chat .hd .x {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #5b8ac9;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.chibi-chat .log {
+  height: 168px;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chibi-chat .log::-webkit-scrollbar { width: 6px; }
+.chibi-chat .log::-webkit-scrollbar-thumb { background: #cfdcf0; }
+
+.chibi-chat .her,
+.chibi-chat .me {
+  max-width: 86%;
+  padding: 5px 8px;
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.chibi-chat .her {
+  align-self: flex-start;
+  background: #eef4fd;
+  border-left: 3px solid #5b8ac9;
+}
+
+.chibi-chat .me {
+  align-self: flex-end;
+  background: #f6f1e4;
+  border-right: 3px solid #e8a33d;
+}
+
+.chibi-chat .typing { color: #8a94a6; letter-spacing: 2px; }
+
+.chibi-chat .in {
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-top: 2px solid #cfdcf0;
+}
+
+.chibi-chat .in input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 2px solid #cfdcf0;
+  background: #fff;
+  color: #3b4252;
+  font: inherit;
+  outline: none;
+}
+
+.chibi-chat .in input:focus { border-color: #5b8ac9; }
+
+.chibi-chat .in button {
+  appearance: none;
+  padding: 4px 10px;
+  border: 2px solid #5b8ac9;
+  background: #e8f0fb;
+  color: #2f4360;
+  font: inherit;
+  cursor: pointer;
+}
+
+.chibi-chat .in button:active { background: #d8e6f8; }
+
+/* ---------- 藏起来之后的小还原钮 ---------- */
+#chibi-restore {
+  position: fixed;
+  right: 10px;
+  bottom: 10px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 3px solid #5b8ac9;
+  background: #fffdf5;
+  box-shadow: 3px 3px 0 #cfdcf0;
+  color: #3b4252;
+  font-family: 'Zpix', 'Fusion Pixel 12px monospaced', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 100000;
+}
+
+/* ---------- 暗色 ---------- */
+html[data-theme='dark'] #live2d-widget.chibi img {
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, .5));
+}
+
+html[data-theme='dark'] #live2d-widget.chibi:hover img {
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, .6)) brightness(1.03);
+}
+
+html[data-theme='dark'] .chibi-stats,
+html[data-theme='dark'] .chibi-menu,
+html[data-theme='dark'] .chibi-chat,
+html[data-theme='dark'] #chibi-restore {
+  background: #2b3242;
+  border-color: #7fa8dd;
+  box-shadow: 4px 4px 0 #1a1f2b;
+  color: #e8eef7;
+}
+
+html[data-theme='dark'] .chibi-stats .row i { border-color: #7fa8dd; background: #1f2532; }
+html[data-theme='dark'] .chibi-menu button { color: #e8eef7; }
+html[data-theme='dark'] .chibi-menu button:hover { background: #38405a; }
+html[data-theme='dark'] .chibi-chat .hd { border-bottom-color: #3c465e; }
+html[data-theme='dark'] .chibi-chat .in { border-top-color: #3c465e; }
+html[data-theme='dark'] .chibi-chat .her { background: #333d52; border-left-color: #7fa8dd; }
+html[data-theme='dark'] .chibi-chat .me { background: #40392c; }
+html[data-theme='dark'] .chibi-chat .in input { background: #1f2532; border-color: #3c465e; color: #e8eef7; }
+html[data-theme='dark'] .chibi-chat .in button { background: #38405a; color: #e8eef7; }
+html[data-theme='dark'] .chibi-chat .log::-webkit-scrollbar-thumb { background: #3c465e; }
+
+/* 看板娘固定在右下角，窄一点的屏幕上会盖到侧栏卡片的社交按钮区；
+ * 把那一块提到看板娘之上，保证按钮永远可点（只是叠在裙子前面）。 */
+.card-info-social-icons {
+  position: relative;
+  z-index: 95;                /* 看板娘 90，右侧浮动按钮 100 */
+}
+
+/* ---------- 窄屏：右侧没有让位的空白，阅读优先，整体隐藏 ---------- */
+@media (max-width: 1200px) {
+  #live2d-widget.chibi { display: none !important; }
+  .chibi-menu,
+  .chibi-chat,
+  .chibi-stats,
+  #chibi-restore { display: none !important; }
+}
+
+/* 尊重系统的减少动效设置 */
+@media (prefers-reduced-motion: reduce) {
+  #live2d-widget.chibi img { animation: none; }
+}
