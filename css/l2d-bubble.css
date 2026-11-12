@@ -1,0 +1,69 @@
+/* 看板娘台词气泡 —— 像素风对话框
+ * 直角 + 粗描边 + 硬阴影 + 等宽字体，描边用主题蓝系而非纯黑。
+ * 单独成文件是为了避免写在 _config.butterfly.yml 的 inject 里：
+ * YAML 中 " #" 会被当作注释起始，含十六进制颜色的 CSS 会被截断。
+ */
+
+.l2d-bubble {
+  position: absolute;
+  right: calc(100% + 14px);
+  top: 8px;
+  max-width: min(210px, 58vw);
+  padding: 10px 13px;
+  background: #fffdf5;
+  border: 3px solid #5b8ac9;
+  border-radius: 0;
+  /* 硬阴影（无模糊）是像素风的标志 */
+  box-shadow: 4px 4px 0 #cfdcf0;
+  color: #3b4252;
+  /* 优先使用本地像素字体，没有则退回等宽字体 */
+  font-family: 'Zpix', 'Fusion Pixel 12px monospaced', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  letter-spacing: .5px;
+  word-break: break-word;
+  opacity: 0;
+  transform: translateY(6px);
+  /* steps() 制造复古的逐帧感 */
+  transition: opacity .16s steps(3), transform .16s steps(3);
+  pointer-events: none;
+  z-index: 99999;
+}
+
+.l2d-bubble.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 尖角：旋转 45° 的方块，比三角形边框更有像素味 */
+.l2d-bubble::after {
+  content: '';
+  position: absolute;
+  top: 18px;
+  right: -9px;
+  width: 12px;
+  height: 12px;
+  background: #fffdf5;
+  border-right: 3px solid #5b8ac9;
+  border-top: 3px solid #5b8ac9;
+  transform: rotate(45deg);
+}
+
+html[data-theme='dark'] .l2d-bubble {
+  background: #2b3242;
+  border-color: #7fa8dd;
+  color: #e8eef7;
+  box-shadow: 4px 4px 0 #1a1f2b;
+}
+
+html[data-theme='dark'] .l2d-bubble::after {
+  background: #2b3242;
+  border-right-color: #7fa8dd;
+  border-top-color: #7fa8dd;
+}
+
+@media (max-width: 768px) {
+  .l2d-bubble {
+    display: none;
+  }
+}

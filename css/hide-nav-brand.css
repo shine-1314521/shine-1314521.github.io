@@ -1,0 +1,6 @@
+/* 隐藏左上角导航栏的 logo 贴图与站点名 */
+/* banner 区大标题（site-title）与浏览器标签不受影响 */
+#nav .site-icon,
+#nav .site-name {
+  display: none !important;
+}
